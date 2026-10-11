@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video & Media Feed</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #0f111a;
+            color: #fff;
+            padding-bottom: 30px;
+        }
+        header {
+            background: #1a1d29;
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #2a2e43;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            overflow-x: auto;
+            background: #141722;
+            padding: 10px;
+            gap: 10px;
+            white-space: nowrap;
+            border-bottom: 1px solid #2a2e43;
+        }
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-btn {
+            background: #212538;
+            color: #ccc;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            background: #ff4757;
+            color: #fff;
+        }
+        /* Feed Container */
+        .feed-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+        .post-card {
+            background: #1a1d29;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #2a2e43;
+        }
+        .post-header {
+            padding: 12px;
+            font-size: 14px;
+            color: #ff4757;
+            font-weight: 600;
+        }
+        .media-box {
+            width: 100%;
+            background: #000;
+            position: relative;
+            max-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .media-box img, .media-box video {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+        }
+        .post-content {
+            padding: 12px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .post-footer {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #2a2e43;
+        }
+    </style>
+</head>
+<body>
+
+    <header>Media Reels Feed</header>
+
+    <!-- Navigation Bar -->
+    <div class="nav-tabs" id="navTabs">
+        <button class="tab-btn active" onclick="filterPosts('ALL', this)">All</button>
+        <button class="tab-btn" onclick="filterPosts('TOP Video 🔥', this)">TOP Video 🔥</button>
+        <button class="tab-btn" onclick="filterPosts('7STAR ⭐', this)">7STAR ⭐</button>
+        <button class="tab-btn" onclick="filterPosts('Girlfriend 🙈', this)">Girlfriend 🙈</button>
+        <button class="tab-btn" onclick="filterPosts('Night 🥵', this)">Night 🥵</button>
+    </div>
+
+    <!-- Feed Section -->
+    <div class="feed-container" id="feedContainer">
+        <!-- Posts will dynamically load here -->
+    </div>
+
+    <script>
+        // ডিফল্ট পোস্টের তালিকা (যেখানে ভিডিও দেওয়া আছে)
+        let posts = [
+            {
+              id: 2,
+                type: 'video',
+                url: 'আপনার_দ্বিতীয়_ভিডিওর_লিংক',
+                category: '7STAR ⭐',
+                caption: 'দ্বিতীয় ভিডিওর ক্যাপশন',
+                views: 50,
+                time: 'Just now'
+              
+            
+            },
+  {
+                id: 2,
+                type: 'video',
+                url: 'https://cdn.jsdelivr.net/gh/Hotpop12/-@main/VID_20261012_042328_426.mp4',
+                category: 'TOP Video 🔥',
+                caption: 'ফাটাকেষ্ট পুরাই আগুন ভিডিও 🥵🥵।',
+                views: 150,
+                time: 'Just now'
+    
+    
+              }, // <-- এখানে কমা দিতে হবে
+            {
+                id: 3,
+                type: 'video',
+                url: 'আপনার_দ্বিতীয়_ভিডিওর_লিংক',
+                category: '7STAR ⭐',
+                caption: 'দ্বিতীয় ভিডিওর ক্যাপশন',
+                views: 50,
+                time: 'Just now'
+              
+              }, // <-- এখানে কমা দিতে হবে
+            {
+                id: 3,
+                type: 'video',
+                url: 'আপনার_দ্বিতীয়_ভিডিওর_লিংক',
+                category: 'TOP Video 🔥',
+                caption: 'দ্বিতীয় ভিডিওর ক্যাপশন',
+                views: 50,
+                time: 'Just now'
+    
+            }
+  
+        ];
+
+        let currentCategory = 'ALL';
+
+        function renderPosts() {
+            const container = document.getElementById('feedContainer');
+            container.innerHTML = '';
+
+            let filtered = posts;
+            if (currentCategory !== 'ALL') {
+                filtered = posts.filter(p => p.category === currentCategory);
+            } else {
+                filtered.sort((a, b) => b.views - a.views);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#777; margin-top:40px;">কোনো পোস্ট পাওয়া যায়নি!</p>';
+                return;
+            }
+
+            filtered.forEach(post => {
+                let mediaElement = '';
+                if (post.type === 'video') {
+                    // controlsList="nodownload" ব্যবহার করা হয়েছে যাতে ডাউনলোড বাটন হাইড থাকে
+                    mediaElement = `<div class="media-box"><video src="${post.url}" controls controlsList="nodownload" onplay="incrementView(${post.id})"></video></div>`;
+                } else {
+                    mediaElement = `<div class="media-box"><img src="${post.url}" onclick="incrementView(${post.id})" alt="Post Image"></div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'post-card';
+                card.innerHTML = `
+                    <div class="post-header">⛳${post.category}</div>
+                    ${mediaElement}
+                    <div class="post-content">${post.caption}</div>
+                    <div class="post-footer">
+                        <span>👀 ভিউ: ${post.views}</span>
+                        <span>${post.time}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ভিউ কাউন্ট বাড়ানোর ফাংশন
+        function incrementView(id) {
+            let post = posts.find(p => p.id === id);
+            if (post) {
+                post.views += 1;
+            }
+        }
+
+        // ট্যাব ফিল্টার করার ফাংশন
+        function filterPosts(cat, btn) {
+            currentCategory = cat;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPosts();
+        }
+
+        // পেজ লোড হলে পোস্ট রেন্ডার করা
+        window.onload = renderPosts;
+    </script>
+</body>
+</html>
