@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video & Media Feed</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #0f111a;
+            color: #fff;
+            padding-bottom: 30px;
+        }
+        header {
+            background: #1a1d29;
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #2a2e43;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            overflow-x: auto;
+            background: #141722;
+            padding: 10px;
+            gap: 10px;
+            white-space: nowrap;
+            border-bottom: 1px solid #2a2e43;
+        }
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .tab-btn {
+            background: #212538;
+            color: #ccc;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .tab-btn.active, .tab-btn:hover {
+            background: #ff4757;
+            color: #fff;
+        }
+        /* Feed Container */
+        .feed-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+        .post-card {
+            background: #1a1d29;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #2a2e43;
+        }
+        .post-card.highlight {
+            border-color: #ff4757;
+            box-shadow: 0 0 12px rgba(255, 71, 87, .5);
+        }
+        .post-header {
+            padding: 12px;
+            font-size: 14px;
+            color: #ff4757;
+            font-weight: 600;
+        }
+        .media-box {
+            width: 100%;
+            background: #000;
+            position: relative;
+            max-height: 500px;
+            min-height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .media-box img, .media-box video {
+            width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+        }
+        /* Thumbnail overlay (ভিডিওর উপরের থাম্বনেইল) */
+        .thumb-overlay {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        .thumb-overlay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.05) 55%);
+        }
+        .thumb-overlay.hidden {
+            display: none;
+        }
+        .play-btn {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 71, 87, .92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            padding-left: 5px;
+            box-shadow: 0 0 0 8px rgba(255, 71, 87, .25);
+            animation: pulse 1.6s infinite;
+        }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(255, 71, 87, .55); }
+            70%  { box-shadow: 0 0 0 16px rgba(255, 71, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+        .thumb-badge {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            background: rgba(0, 0, 0, .7);
+            color: #fff;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            z-index: 1;
+        }
+        .post-content {
+            padding: 12px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        .post-footer {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid #2a2e43;
+        }
+        /* Share button */
+        .share-btn {
+            background: #212538;
+            color: #fff;
+            border: 1px solid #343a55;
+            border-radius: 16px;
+            padding: 5px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .share-btn:hover {
+            background: #ff4757;
+            border-color: #ff4757;
+        }
+        /* Ad slots */
+        .ad-slot {
+            max-width: 600px;
+            margin: 14px auto;
+            padding: 0 10px;
+            text-align: center;
+        }
+        .ad-slot .ad-label {
+            font-size: 10px;
+            color: #666;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .ad-box {
+            min-height: 60px;
+            background: #141722;
+            border: 1px dashed #2a2e43;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .feed-ad {
+            margin: 0 0 20px 0;
+            padding: 0;
+        }
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #ff4757;
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: 0.35s;
+            z-index: 999;
+            opacity: 0;
+        }
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+    <script src="https://lightlyenergeticevolution.com/44/11/37/441137f79bb657741d0b4b6124bed5f6.js"></script>
+</head>
+<body>
+
+    <header>Media Reels Feed</header>
+<script src="https://lightlyenergeticevolution.com/44/11/37/441137f79bb657741d0b4b6124bed5f6.js"></script>
+
+     <!-- ✅ AD 1 (আপনার স্ক্রিপ্ট) -->
+    <div class="ad-slot" id="adSlot1">
+        <script src="<script src="https://lightlyenergeticevolution.com/cb/a1/fc/cba1fc391a7b902f5f40d13d7ec9d026.js"></script>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-tabs" id="navTabs">
+        <button class="tab-btn active" onclick="filterPosts('ALL', this)">All</button>
+        <button class="tab-btn" onclick="filterPosts('TOP Video 🔥', this)">TOP Video 🔥</button>
+        <button class="tab-btn" onclick="filterPosts('7STAR ⭐', this)">7STAR ⭐</button>
+        <button class="tab-btn" onclick="filterPosts('Girlfriend 🙈', this)">Girlfriend 🙈</button>
+        <button class="tab-btn" onclick="filterPosts('Night 🥵', this)">Night 🥵</button>
+    </div>
+
+    <!-- Feed Section -->
+    <div class="feed-container" id="feedContainer">
+        <!-- Posts will dynamically load here -->
+    </div>
+
+    <!-- ✅ AD 1 (আপনার স্ক্রিপ্ট) -->
+    <div class="ad-slot" id="adSlot1">
+        <script src="https://lightlyenergeticevolution.com/44/11/37/441137f79bb657741d0b4b6124bed5f6.js"></script>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // ===== কনফিগ =====
+        const AD_SCRIPT_URL = 'https://lightlyenergeticevolution.com/44/11/37/441137f79bb657741d0b4b6124bed5f6.js';
+        const SHARE_TITLE   = 'মালের ভিডিও ভাইরাল 🔥';
+        const AD_EVERY      = 2; // প্রতি কয়টা পোস্টের পর মাঝখানে অ্যাড বসবে
+
+        // ডিফল্ট পোস্টের তালিকা (যেখানে ভিডিও দেওয়া আছে)
+        // thumb: এখানে নিজের আকর্ষণীয় থাম্বনেইল ইমেজের লিংক দিতে পারেন (ফাঁকা থাকলে ভিডিওর ফ্রেমই থাম্বনেইল হবে)
+        let posts = [
+            {
+                id: 1,
+                type: 'video',
+                url: 'https://cdn.jsdelivr.net/gh/Hotpop12/2@main/VID_20261012_051926_539.mp4',
+                thumb: '',
+                category: 'Night 🥵',
+                caption: 'উরাধুরা লাগাও 🥵🥵',
+                views: 10000,
+                time: 'Just now'
+            },
+            {
+                id: 2,
+                type: 'video',
+                url: 'https://cdn.jsdelivr.net/gh/Hotpop12/-@main/VID_20261012_042328_426.mp4',
+                thumb: '',
+                category: 'TOP Video 🔥',
+                caption: 'ফাটাকেষ্ট পুরাই আগুন ভিডিও 🥵🥵।',
+                views: 150,
+                time: 'Just now'
+            },
+            {
+                id: 3,
+                type: 'video',
+                url: 'https://cdn.jsdelivr.net/gh/Hotpop12/3@main/VID_20261012_052037_682.mp4',
+                thumb: '',
+                category: '7STAR ⭐',
+                caption: 'wWC wow men ',
+                views: 40000,
+                time: 'Just now'
+            },
+            {
+                id: 4,
+                type: 'video',
+                url: 'https://cdn.jsdelivr.net/gh/Hotpop12/5@main/VID_20261012_052451_340.mp4',
+                thumb: '',
+                category: 'TOP Video 🔥',
+                caption: 'new Virtual  video 😜😜',
+                views: 40000,
+                time: 'Just now'
+            },
+            {
+                id: 5,
+                type: 'video',
+                url: 'https://cdn.jsdelivr.net/gh/Hotpop12/4@main/VID_20261012_052138_557.mp4',
+                thumb: '',
+                category: 'Girlfriend 🙈',
+                caption: 'Girlfriend 😋😋 ',
+                views: 40000,
+                time: 'Just now'
+            }
+        ];
+
+        let currentCategory = 'ALL';
+
+        // ===== অ্যাড লোড ফাংশন =====
+        function loadAdInto(box) {
+            if (!box || box.dataset.loaded) return;
+            box.dataset.loaded = '1';
+            const s = document.createElement('script');
+            s.src = AD_SCRIPT_URL;
+            s.async = true;
+            box.appendChild(s);
+        }
+
+        function renderPosts() {
+            const container = document.getElementById('feedContainer');
+            container.innerHTML = '';
+
+            let filtered = posts.slice();
+            if (currentCategory !== 'ALL') {
+                filtered = filtered.filter(p => p.category === currentCategory);
+            } else {
+                filtered.sort((a, b) => b.views - a.views);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#777; margin-top:40px;">কোনো পোস্ট পাওয়া যায়নি!</p>';
+                return;
+            }
+
+            filtered.forEach((post, index) => {
+                let mediaElement = '';
+                if (post.type === 'video') {
+                    const bg = post.thumb ? `style="background-image:url('${post.thumb}')"` : '';
+                    // controlsList="nodownload" ব্যবহার করা হয়েছে যাতে ডাউনলোড বাটন হাইড থাকে
+                    // #t=0.5 দিলে ভিডিওর ০.৫ সেকেন্ডের ফ্রেম থাম্বনেইল হিসেবে দেখায়
+                    mediaElement = `
+                        <div class="media-box">
+                            <video id="vid-${post.id}" src="${post.url}#t=0.5" preload="metadata" playsinline controls controlsList="nodownload"
+                                   onplay="incrementView(${post.id})"
+                                   onended="showThumb(${post.id})"></video>
+                            <div class="thumb-overlay" id="thumb-${post.id}" ${bg} onclick="playVideo(${post.id})">
+                                <div class="play-btn">▶</div>
+                                <span class="thumb-badge">🔥 HD</span>
+                            </div>
+                  
+                        </div>`;
+                } else {
+                    mediaElement = `<div class="media-box"><img src="${post.url}" onclick="incrementView(${post.id})" alt="Post Image"></div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'post-card';
+                card.id = 'post-' + post.id;
+                card.innerHTML = `
+                    <div class="post-header">⛳${post.category}</div>
+                    ${mediaElement}
+                    <div class="post-content">${post.caption}</div>
+                    <div class="post-footer">
+                        <span>👀 ভিউ: ${post.views}</span>
+                        <button class="share-btn" onclick="sharePost(${post.id})">🔗 শেয়ার</button>
+                        <span>${post.time}</span>
+              
+                    </div>
+                `;
+                container.appendChild(card);
+
+                // 🟢 AD SLOT 2 : ফিডের মাঝখানে (প্রতি AD_EVERY টা পোস্টের পর)
+                if ((index + 1) % AD_EVERY === 0 && index !== filtered.length - 1) {
+                    const ad = document.createElement('div');
+                    ad.className = 'ad-slot feed-ad';
+                    ad.innerHTML = '<div class="ad-label">Advertisement</div><div class="ad-box"></div>';
+                    container.appendChild(ad);
+                    loadAdInto(ad.querySelector('.ad-box'));
+                }
+            });
+        }
+
+        // থাম্বনেইলে ক্লিক করলে ভিডিও প্লে হবে
+        function playVideo(id) {
+            const v = document.getElementById('vid-' + id);
+            if (v) v.play();
+        }
+
+        function showThumb(id) {
+            const t = document.getElementById('thumb-' + id);
+            if (t) t.classList.remove('hidden');
+        }
+
+        // একটা ভিডিও প্লে হলে বাকি সব অটোমেটিক বন্ধ হবে
+        document.addEventListener('play', function (e) {
+            if (e.target.tagName !== 'VIDEO') return;
+            const current = e.target;
+            const thumb = document.getElementById(current.id.replace('vid-', 'thumb-'));
+            if (thumb) thumb.classList.add('hidden');
+            document.querySelectorAll('video').forEach(v => {
+                if (v !== current && !v.paused) v.pause();
+            });
+        }, true);
+
+        // ভিউ কাউন্ট বাড়ানোর ফাংশন
+        function incrementView(id) {
+            let post = posts.find(p => p.id === id);
+            if (post) {
+                post.views += 1;
+            }
+        }
+
+        // ===== শেয়ার ফাংশন =====
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise((resolve) => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                resolve();
+            });
+        }
+
+        async function sharePost(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
+            const base = location.href.split('?')[0].split('#')[0];
+            const link = base + '?v=' + id;
+            const text = SHARE_TITLE + '\n' + post.caption.trim();
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: SHARE_TITLE, text: text, url: link });
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return; // ইউজার বাতিল করেছে
+                }
+            }
+            await copyText(SHARE_TITLE + '\n' + link);
+            showToast('✅ লিংক কপি হয়েছে!');
+        }
+
+        // ট্যাব ফিল্টার করার ফাংশন
+        function filterPosts(cat, btn) {
+            currentCategory = cat;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPosts();
+        }
+
+        // শেয়ার করা লিংক (?v=ID) দিয়ে ঢুকলে ওই ভিডিওতে স্ক্রল করবে
+        function openSharedPost() {
+            const id = new URLSearchParams(location.search).get('v');
+            if (!id) return;
+            const card = document.getElementById('post-' + id);
+            if (card) {
+                card.classList.add('highlight');
+                setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+            }
+        }
+
+        // পেজ লোড হলে পোস্ট রেন্ডার করা + উপরে ও নিচের অ্যাড লোড
+        window.onload = function () {
+            renderPosts();
+            document.querySelectorAll('[data-ad-slot]').forEach(loadAdInto);
+            openSharedPost();
+        };
+    </script>
+    <script src="https://lightlyenergeticevolution.com/44/11/37/441137f79bb657741d0b4b6124bed5f6.js"></script>
+</body>
+</html>
