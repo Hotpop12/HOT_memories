@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video & Media Feed</title>
+
+    <!-- ===== HEADER AD/SCRIPT (Adsterra বা অন্য নেটওয়ার্কের হেডার স্ক্রিপ্ট) ===== -->
+    <!-- <এখানে আপনার স্ক্রিপ্ট বসান> -->
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0f111a; color: #fff; padding-bottom: 80px; }
+        header {
+            background: #1a1d29; padding: 15px; text-align: center; font-size: 20px; font-weight: bold;
+            border-bottom: 1px solid #2a2e43; position: sticky; top: 0; z-index: 100;
+        }
+        .hdr-actions { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; gap: 6px; }
+        .hdr-back { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); display: none; }
+        .hdr-btn { background: #ff4757; color: #fff; border: none; padding: 7px 12px; border-radius: 16px; font-size: 13px; cursor: pointer; }
+        .hdr-btn.alt { background: #2a2e43; }
+
+        .nav-tabs { display: flex; overflow-x: auto; background: #141722; padding: 10px; gap: 10px; white-space: nowrap; border-bottom: 1px solid #2a2e43; }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { background: #212538; color: #ccc; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 14px; transition: .3s; }
+        .tab-btn.active, .tab-btn:hover { background: #ff4757; color: #fff; }
+
+        .ad-slot { max-width: 600px; margin: 15px auto; padding: 0 10px; text-align: center; overflow: hidden; }
+        .ad-slot:empty { display: none; }
+
+        #adSlot5 { position: fixed; bottom: 0; left: 0; right: 0; z-index: 90; background: #141722; margin: 0; padding: 4px; max-width: none; }
+        #adSlot5:empty, #adSlot5.closed { display: none; }
+        #adClose { position: absolute; top: -22px; right: 8px; background: #ff4757; color: #fff; border: none; border-radius: 10px 10px 0 0; padding: 2px 10px; font-size: 12px; cursor: pointer; }
+
+        .feed-container { max-width: 600px; margin: 20px auto; padding: 0 10px; }
+        .post-card { background: #1a1d29; border-radius: 12px; margin-bottom: 20px; overflow: hidden; border: 1px solid #2a2e43; }
+        .post-header { padding: 12px; font-size: 14px; color: #ff4757; font-weight: 600; }
+        .media-box { width: 100%; background: #000; position: relative; max-height: 500px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .media-box img, .media-box video { width: 100%; max-height: 500px; object-fit: contain; }
+        .thumb-overlay { position: absolute; inset: 0; z-index: 2; background-size: cover; background-position: center; background-color: #000; display: flex; align-items: center; justify-content: center; }
+        .thumb-overlay::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.25); }
+        .play-icon { position: relative; z-index: 3; width: 64px; height: 64px; border-radius: 50%; background: rgba(255,71,87,.9); display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 0 20px rgba(255,71,87,.6); }
+        .post-content { padding: 12px; font-size: 15px; line-height: 1.5; word-break: break-word; }
+        .post-footer { padding: 10px 12px; font-size: 12px; color: #888; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #2a2e43; gap: 6px; flex-wrap: wrap; }
+        .mini-btn { background: #ff4757; color: #fff; border: none; padding: 6px 12px; border-radius: 14px; font-size: 12px; cursor: pointer; }
+        .mini-btn.edit { background: #3742fa; }
+        .mini-btn.del { background: #57606f; }
+        .admin-row { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px dashed #2a2e43; }
+
+        /* ওয়াচ পেজ */
+        .watch-player { background: #000; }
+        .watch-player video { width: 100%; max-height: 70vh; display: block; background: #000; }
+        .watch-player img { width: 100%; max-height: 70vh; object-fit: contain; display: block; }
+        .rec-title { font-size: 16px; font-weight: 700; margin: 18px 2px 12px; color: #ff4757; }
+        .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .rec-card { background: #1a1d29; border: 1px solid #2a2e43; border-radius: 12px; overflow: hidden; cursor: pointer; }
+        .rec-card .media-box { aspect-ratio: 16/10; max-height: none; }
+        .rec-card .media-box img, .rec-card .media-box video { height: 100%; object-fit: cover; }
+        .rec-card .play-icon { width: 44px; height: 44px; font-size: 20px; }
+        .rec-info { padding: 8px 10px; font-size: 12px; line-height: 1.4; }
+        .rec-info b { display: block; color: #ff4757; font-size: 11px; margin-bottom: 3px; }
+        .rec-info span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #ddd; }
+
+        /* Modal */
+        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 500; display: none; align-items: center; justify-content: center; padding: 15px; }
+        .modal-bg.show { display: flex; }
+        .modal { background: #1a1d29; border: 1px solid #2a2e43; border-radius: 14px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; padding: 18px; }
+        .modal h3 { margin-bottom: 14px; font-size: 17px; }
+        .modal label { display: block; font-size: 12px; color: #aaa; margin: 10px 0 4px; }
+        .modal input[type=text], .modal input[type=password], .modal input[type=number], .modal select, .modal textarea {
+            width: 100%; background: #0f111a; color: #fff; border: 1px solid #2a2e43; border-radius: 8px; padding: 10px; font-size: 14px;
+        }
+        .modal input[type=file] { width: 100%; font-size: 13px; color: #ccc; }
+        .modal textarea { min-height: 80px; resize: vertical; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .modal-actions button { flex: 1; padding: 11px; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; color: #fff; background: #ff4757; }
+        .modal-actions button.cancel { background: #2a2e43; }
+        .modal-actions button:disabled { opacity: .5; }
+        .progress { height: 8px; background: #0f111a; border-radius: 6px; margin-top: 12px; overflow: hidden; display: none; }
+        .progress > div { height: 100%; width: 0; background: #2ed573; transition: width .15s; }
+        .msg { font-size: 13px; margin-top: 10px; color: #ff6b81; min-height: 16px; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #2ed573; color: #000; padding: 10px 18px; border-radius: 20px; font-size: 13px; z-index: 999; display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="hdr-btn alt hdr-back" id="btnBack" onclick="goHome()">← হোম</button>
+        <span id="hdrTitle">Media Reels Feed</span>
+        <div class="hdr-actions" id="hdrActions"></div>
+    </header>
+
+    <div class="nav-tabs" id="navTabs"></div>
+
+    <!-- ✅ AD 1 -->
+    <div class="ad-slot" id="adSlot1">
+
+    </div>
+
+    <!-- হোম ফিড -->
+    <div class="feed-container" id="feedContainer"></div>
+
+    <!-- ওয়াচ পেজ (ভিডিও প্লে + রিকমেন্ডেড) -->
+    <div class="feed-container" id="watchView" style="display:none;"></div>
+
+    <div id="adHolder" style="display:none;">
+        <div class="ad-slot" id="adSlot2">
+            <script src="https://lightlyenergeticevolution.com/44/11/37/441137f79bb657741d0b4b6124bed5f6.js"></script>
+        </div>
+        <div class="ad-slot" id="adSlot3">
+            <!-- AD 3: <এখানে আপনার স্ক্রিপ্ট বসান> -->
+        </div>
+    </div>
+
+    <!-- ✅ AD 4 (একদম নিচে) -->
+    <div class="ad-slot" id="adSlot4">
+        <script src="https://lightlyenergeticevolution.com/cb/a1/fc/cba1fc391a7b902f5f40d13d7ec9d026.js"></script>
+    </div>
+
+    <!-- ✅ AD 5 (স্ক্রিনের নিচে স্টিকি ব্যানার) -->
+    <div class="ad-slot" id="adSlot5">
+        <!-- AD 5: <এখানে আপনার স্ক্রিপ্ট বসান> -->
+    </div>
+
+    <div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ====== সেটিংস ======
+        const API = 'https://media-feed-api.qxrealtime31.workers.dev';   // Worker লিংক
+        const SHARE_TITLE = '🔥 ভাইরাল ভিডিও দেখুন';
+        const SHARE_TEXT  = '🔥 ভাইরাল ভিডিও দেখুন! এখনই দেখে নিন 👇';
+        const CATS = ['TOP Video 🔥', '7STAR ⭐', 'Girlfriend 🙈', 'Night 🥵'];
+        const MAX_MB = 50;
+        const REC_COUNT = 2;   // রিকমেন্ডেড ভিডিও সংখ্যা
+
+        let posts = [];
+        let currentCategory = 'ALL';
+        let pw = sessionStorage.getItem('adminPw') || '';
+
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const mediaUrl = (k) => API + '/media/' + k;
+
+        function toast(t) {
+            const el = $('toast'); el.textContent = t; el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 2200);
+        }
+
+        function timeAgo(ts) {
+            if (!ts) return '';
+            const s = Math.floor((Date.now() - ts) / 1000);
+            if (s < 60) return 'Just now';
+            if (s < 3600) return Math.floor(s / 60) + ' মিনিট আগে';
+            if (s < 86400) return Math.floor(s / 3600) + ' ঘন্টা আগে';
+            return Math.floor(s / 86400) + ' দিন আগে';
+        }
+
+        // ====== নেভিগেশন (নতুন পেজ) ======
+        function openWatch(id) { location.href = location.pathname + '?watch=' + encodeURIComponent(id); }
+        function goHome() { location.href = location.pathname; }
+
+        // ====== নেভ ও হেডার বাটন ======
+        function renderNav() {
+            const tabs = ['ALL', ...CATS];
+            $('navTabs').innerHTML = tabs.map((c) =>
+                `<button class="tab-btn ${c === currentCategory ? 'active' : ''}" data-cat="${esc(c)}">${c === 'ALL' ? 'All' : esc(c)}</button>`
+            ).join('');
+            $('navTabs').querySelectorAll('.tab-btn').forEach((b) => b.onclick = () => { currentCategory = b.dataset.cat; renderNav(); renderPosts(); });
+        }
+
+        function renderHeaderBtns() {
+            $('hdrActions').innerHTML = pw
+                ? `<button class="hdr-btn" id="btnPost">➕ পোস্ট</button><button class="hdr-btn alt" id="btnLogout">🚪</button>`
+                : `<button class="hdr-btn" id="btnPost">➕ পোস্ট</button>`;
+            $('btnPost').onclick = () => pw ? openUpload() : openLogin();
+            if ($('btnLogout')) $('btnLogout').onclick = () => { pw = ''; sessionStorage.removeItem('adminPw'); renderHeaderBtns(); renderPosts(); toast('লগআউট হয়েছে'); };
+        }
+
+        // ====== মডাল ======
+        function openModal(html) { $('modal').innerHTML = html; $('modalBg').classList.add('show'); }
+        function closeModal() { $('modalBg').classList.remove('show'); $('modal').innerHTML = ''; }
+        $('modalBg').addEventListener('click', (e) => { if (e.target.id === 'modalBg') closeModal(); });
+
+        // ====== পাসওয়ার্ড ======
+        function openLogin() {
+            openModal(`
+                <h3>🔒 পাসওয়ার্ড দিন</h3>
+                <input type="password" id="pwInput" placeholder="পাসওয়ার্ড">
+                <div class="msg" id="msg"></div>
+                <div class="modal-actions">
+                    <button class="cancel" onclick="closeModal()">বাতিল</button>
+                    <button id="loginBtn">ঢুকুন</button>
+                </div>`);
+            const go = async () => {
+                const val = $('pwInput').value;
+                $('loginBtn').disabled = true; $('msg').textContent = '';
+                try {
+                    const r = await fetch(API + '/api/login', { method: 'POST', headers: { 'X-Admin-Password': val } });
+                    if (!r.ok) throw new Error('ভুল পাসওয়ার্ড');
+                    pw = val; sessionStorage.setItem('adminPw', pw);
+                    renderHeaderBtns(); renderPosts(); openUpload();
+                } catch (e) { $('msg').textContent = e.message; $('loginBtn').disabled = false; }
+            };
+            $('loginBtn').onclick = go;
+            $('pwInput').onkeydown = (e) => { if (e.key === 'Enter') go(); };
+            $('pwInput').focus();
+        }
+
+        // ====== XHR (প্রোগ্রেস সহ) ======
+        function send(method, url, fd, onProg) {
+            return new Promise((res, rej) => {
+                const x = new XMLHttpRequest();
+                x.open(method, url);
+                x.setRequestHeader('X-Admin-Password', pw);
+                if (onProg) x.upload.onprogress = (e) => e.lengthComputable && onProg(e.loaded / e.total);
+                x.onload = () => {
+                    let d = {}; try { d = JSON.parse(x.responseText); } catch (e) {}
+                    if (x.status >= 200 && x.status < 300) res(d);
+                    else { if (x.status === 401) { pw = ''; sessionStorage.removeItem('adminPw'); renderHeaderBtns(); } rej(new Error(d.error || 'সমস্যা হয়েছে')); }
+                };
+                x.onerror = () => rej(new Error('নেটওয়ার্ক সমস্যা'));
+                x.send(fd);
+            });
+        }
+
+        const catOptions = (sel) => CATS.map((c) => `<option value="${esc(c)}" ${c === sel ? 'selected' : ''}>${esc(c)}</option>`).join('');
+
+        // ====== আপলোড ফর্ম ======
+        function openUpload() {
+            openModal(`
+                <h3>➕ নতুন পোস্ট</h3>
+                <label>ক্যাটাগরি</label>
+                <select id="upCat">${catOptions()}</select>
+                <label>ভিডিও / ছবি সিলেক্ট করুন (সর্বোচ্চ ${MAX_MB}MB)</label>
+                <input type="file" id="upFile" accept="video/*,image/*">
+                <label>থাম্বনেইল ছবি (ঐচ্ছিক, শুধু ভিডিওর জন্য)</label>
+                <input type="file" id="upThumb" accept="image/*">
+                <label>টাইটেল / ভিডিও সম্পর্কে লিখুন</label>
+                <textarea id="upTitle" placeholder="টাইটেল লিখুন..."></textarea>
+                <div class="progress" id="prog"><div id="progBar"></div></div>
+                <div class="msg" id="msg"></div>
+                <div class="modal-actions">
+                    <button class="cancel" onclick="closeModal()">বাতিল</button>
+                    <button id="upBtn">⬆️ আপলোড করুন</button>
+                </div>`);
+            $('upBtn').onclick = async () => {
+                const file = $('upFile').files[0];
+                if (!file) return $('msg').textContent = 'ফাইল সিলেক্ট করুন';
+                if (file.size > MAX_MB * 1024 * 1024) return $('msg').textContent = `ফাইল ${MAX_MB}MB এর বেশি`;
+                const fd = new FormData();
+                fd.append('file', file);
+                if ($('upThumb').files[0]) fd.append('thumb', $('upThumb').files[0]);
+                fd.append('category', $('upCat').value);
+                fd.append('title', $('upTitle').value.trim());
+                $('upBtn').disabled = true; $('msg').textContent = ''; $('prog').style.display = 'block';
+                try {
+                    const p = await send('POST', API + '/api/posts', fd, (r) => $('progBar').style.width = Math.round(r * 100) + '%');
+                    posts.unshift(p); closeModal(); renderPosts(); toast('আপলোড সফল ✅');
+                } catch (e) { $('msg').textContent = e.message; $('upBtn').disabled = false; }
+            };
+        }
+
+        // ====== এডিট ======
+        function openEdit(id) {
+            const p = posts.find((x) => x.id === id); if (!p) return;
+            openModal(`
+                <h3>✏️ এডিট করুন</h3>
+                <label>টাইটেল</label>
+                <textarea id="edTitle">${esc(p.caption)}</textarea>
+                <label>ক্যাটাগরি</label>
+                <select id="edCat">${catOptions(p.category)}</select>
+                <label>ভিউ সংখ্যা</label>
+                <input type="number" id="edViews" value="${p.views || 0}" min="0">
+                ${p.type === 'video' ? `
+                <label>নতুন থাম্বনেইল (ঐচ্ছিক)</label>
+                <input type="file" id="edThumb" accept="image/*">
+                ${p.thumbKey ? `<label><input type="checkbox" id="edRmThumb"> বর্তমান থাম্বনেইল মুছে ফেলুন</label>` : ''}` : ''}
+                <div class="msg" id="msg"></div>
+                <div class="modal-actions">
+                    <button class="cancel" onclick="closeModal()">বাতিল</button>
+                    <button id="edBtn">💾 সেভ</button>
+                </div>`);
+            $('edBtn').onclick = async () => {
+                const fd = new FormData();
+                fd.append('title', $('edTitle').value.trim());
+                fd.append('category', $('edCat').value);
+                fd.append('views', $('edViews').value);
+                if ($('edThumb') && $('edThumb').files[0]) fd.append('thumb', $('edThumb').files[0]);
+                if ($('edRmThumb') && $('edRmThumb').checked) fd.append('removeThumb', '1');
+                $('edBtn').disabled = true;
+                try {
+                    const np = await send('PUT', API + '/api/posts/' + id, fd);
+                    posts[posts.findIndex((x) => x.id === id)] = np;
+                    closeModal(); renderPosts(); toast('আপডেট হয়েছে ✅');
+                } catch (e) { $('msg').textContent = e.message; $('edBtn').disabled = false; }
+            };
+        }
+
+        // ====== ডিলিট ======
+        async function deletePost(id) {
+            if (!confirm('এই পোস্ট ডিলিট করবেন? আর ফেরত পাওয়া যাবে না।')) return;
+            try {
+                await send('DELETE', API + '/api/posts/' + id);
+                posts = posts.filter((p) => p.id !== id); renderPosts(); toast('ডিলিট হয়েছে 🗑️');
+            } catch (e) { alert(e.message); }
+        }
+
+        function incrementView(id) {
+            const p = posts.find((x) => x.id === id); if (p) p.views = (p.views || 0) + 1;
+        }
+
+        // ====== শেয়ার ======
+        function shareVideo(id) {
+            const url = location.origin + location.pathname + '?watch=' + id;
+            if (navigator.share) {
+                navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url }).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(SHARE_TEXT + '\n' + url).then(() => toast('লিংক কপি হয়েছে ✅'));
+            } else {
+                const t = document.createElement('textarea'); t.value = SHARE_TEXT + '\n' + url;
+                document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+                toast('লিংক কপি হয়েছে ✅');
+            }
+        }
+
+        // ====== থাম্বনেইল/প্রিভিউ HTML (ফিড ও রিকমেন্ডেড দুই জায়গায় ব্যবহার) ======
+        function previewHtml(post) {
+            const src = mediaUrl(post.key);
+            if (post.type === 'video') {
+                const th = post.thumbKey ? `background-image:url('${mediaUrl(post.thumbKey)}')` : 'background-color:transparent';
+                return `<video src="${src}#t=0.5" preload="metadata" muted playsinline style="pointer-events:none"></video>
+                        <div class="thumb-overlay" style="${th}"><div class="play-icon">▶</div></div>`;
+            }
+            return `<img src="${src}" loading="lazy" alt="Post Image">`;
+        }
+
+        // ====== হোম ফিড রেন্ডার ======
+        function renderPosts() {
+            const container = $('feedContainer');
+            const holder = $('adHolder');
+            holder.appendChild($('adSlot2')); holder.appendChild($('adSlot3'));
+            container.innerHTML = '';
+
+            let list = posts.slice();
+            if (currentCategory !== 'ALL') list = list.filter((p) => p.category === currentCategory);
+            else list.sort((a, b) => (b.views || 0) - (a.views || 0));
+
+            if (!list.length) {
+                container.innerHTML = '<p style="text-align:center;color:#777;margin-top:40px;">কোনো পোস্ট পাওয়া যায়নি!</p>';
+                return;
+            }
+
+            list.forEach((post, i) => {
+                const card = document.createElement('div');
+                card.className = 'post-card'; card.id = 'post-' + post.id;
+                card.innerHTML = `
+                    <div class="post-header">⛳${esc(post.category)}</div>
+                    <div class="media-box" onclick="openWatch('${post.id}')">${previewHtml(post)}</div>
+                    <div class="post-content">${esc(post.caption)}</div>
+                    <div class="post-footer">
+                        <span>👀 ভিউ: ${post.views || 0}</span>
+                        <button class="mini-btn" onclick="shareVideo('${post.id}')">🔗 শেয়ার</button>
+                        <span>${timeAgo(post.createdAt)}</span>
+                    </div>
+                    ${pw ? `<div class="admin-row">
+                        <button class="mini-btn edit" onclick="openEdit('${post.id}')">✏️ এডিট</button>
+                        <button class="mini-btn del" onclick="deletePost('${post.id}')">🗑️ ডিলিট</button>
+                    </div>` : ''}`;
+                container.appendChild(card);
+
+                if (i === 1) container.appendChild($('adSlot2'));
+                if (i === 3) container.appendChild($('adSlot3'));
+            });
+        }
+
+        // ====== ওয়াচ পেজ রেন্ডার ======
+        function renderWatch(id) {
+            $('navTabs').style.display = 'none';
+            $('feedContainer').style.display = 'none';
+            $('btnBack').style.display = 'block';
+            $('hdrTitle').textContent = 'ভিডিও';
+            $('hdrActions').style.display = 'none';
+
+            const wv = $('watchView');
+            wv.style.display = 'block';
+            const post = posts.find((p) => p.id === id);
+
+            if (!post) {
+                wv.innerHTML = '<p style="text-align:center;color:#777;margin-top:40px;">ভিডিওটি পাওয়া যায়নি!</p>';
+                return;
+            }
+
+            const src = mediaUrl(post.key);
+            const player = post.type === 'video'
+                ? `<video id="mainVideo" src="${src}" ${post.thumbKey ? `poster="${mediaUrl(post.thumbKey)}"` : ''} controls playsinline controlsList="nodownload" preload="auto"></video>`
+                : `<img src="${src}" alt="Post Image">`;
+
+            // র‍্যান্ডম রিকমেন্ডেড (বর্তমান ভিডিও বাদে)
+            const others = posts.filter((p) => p.id !== id);
+            for (let i = others.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [others[i], others[j]] = [others[j], others[i]];
+            }
+            const recs = others.slice(0, REC_COUNT);
+
+            wv.innerHTML = `
+                <div class="post-card" id="post-${post.id}">
+                    <div class="post-header">⛳${esc(post.category)}</div>
+                    <div class="watch-player">${player}</div>
+                    <div class="post-content">${esc(post.caption)}</div>
+                    <div class="post-footer">
+                        <span id="viewCount">👀 ভিউ: ${post.views || 0}</span>
+                        <button class="mini-btn" onclick="shareVideo('${post.id}')">🔗 শেয়ার</button>
+                        <span>${timeAgo(post.createdAt)}</span>
+                    </div>
+                </div>
+                <div id="watchAd2Pos"></div>
+                ${recs.length ? `
+                <div class="rec-title">🔥 রিকমেন্ডেড ভিডিও</div>
+                <div class="rec-grid">
+                    ${recs.map((r) => `
+                        <div class="rec-card" onclick="openWatch('${r.id}')">
+                            <div class="media-box">${previewHtml(r)}</div>
+                            <div class="rec-info"><b>${esc(r.category)}</b><span>${esc(r.caption) || '—'}</span></div>
+                        </div>`).join('')}
+                </div>` : ''}
+                <div id="watchAd3Pos"></div>`;
+
+            // অ্যাড স্লট ওয়াচ পেজে বসানো
+            $('watchAd2Pos').appendChild($('adSlot2'));
+            $('watchAd3Pos').appendChild($('adSlot3'));
+
+            // অটো-প্লে + ভিউ কাউন্ট (একবার)
+            const v = $('mainVideo');
+            if (v) {
+                let counted = false;
+                v.addEventListener('play', () => {
+                    if (counted) return; counted = true;
+                    incrementView(post.id);
+                    $('viewCount').textContent = '👀 ভিউ: ' + (post.views || 0);
+                });
+                const p = v.play(); if (p && p.catch) p.catch(() => {});
+            }
+            window.scrollTo(0, 0);
+        }
+
+        // ====== লোড ======
+        async function init() {
+            renderNav(); renderHeaderBtns();
+
+            const a5 = $('adSlot5');
+            if (a5.innerHTML.replace(/<!--[\s\S]*?-->/g, '').trim()) {
+                const b = document.createElement('button');
+                b.id = 'adClose'; b.textContent = '✕'; b.onclick = () => a5.classList.add('closed');
+                a5.appendChild(b);
+            }
+
+            if (pw) {
+                try {
+                    const r = await fetch(API + '/api/login', { method: 'POST', headers: { 'X-Admin-Password': pw } });
+                    if (!r.ok) { pw = ''; sessionStorage.removeItem('adminPw'); renderHeaderBtns(); }
+                } catch (e) {}
+            }
+
+            try { posts = await (await fetch(API + '/api/posts')).json(); } catch (e) { posts = []; }
+
+            const q = new URLSearchParams(location.search);
+            const watchId = q.get('watch') || q.get('v');   // পুরনো ?v= লিংকও কাজ করবে
+            if (watchId) renderWatch(watchId);
+            else renderPosts();
+        }
+        init();
+    </script>
+</body>
+</html>
